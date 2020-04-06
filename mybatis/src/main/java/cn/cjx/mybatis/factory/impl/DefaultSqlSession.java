@@ -2,6 +2,7 @@ package cn.cjx.mybatis.factory.impl;
 
 import cn.cjx.mybatis.config.Configuration;
 import cn.cjx.mybatis.config.MappedStatement;
+import cn.cjx.mybatis.enums.SqlCommandType;
 import cn.cjx.mybatis.factory.Executor;
 import cn.cjx.mybatis.factory.SqlSession;
 import lombok.Data;
@@ -58,13 +59,30 @@ public class DefaultSqlSession implements SqlSession {
                 String statementId = declaringClass.getName()+"."+method.getName();
                 MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementId);
                 Executor executor = new SimpleExecutor();
-                List<Object> objectList = executor.query(configuration, mappedStatement, args);
-                Class<?> returnType = method.getReturnType();
-                // 是collection子类
-                if (Collection.class.isAssignableFrom(returnType)){
-                    return objectList;
+                SqlCommandType sqlCommandType = null;
+                try {
+                    sqlCommandType = SqlCommandType.valueOf(mappedStatement.getNodeName().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    System.out.println("执行getMapper方法出错！"+e);
                 }
-                return objectList.get(0);
+                switch (sqlCommandType){
+                    case SELECT:
+                        List<Object> objectList = executor.query(configuration, mappedStatement, args);
+                        Class<?> returnType = method.getReturnType();
+                        // 是collection子类
+                        if (Collection.class.isAssignableFrom(returnType)){
+                            return objectList;
+                        }
+                    case INSERT:
+                        return executor.insert(configuration,mappedStatement,args);
+                    case UPDATE:
+                        return executor.update(configuration,mappedStatement,args);
+                    case DELETE:
+                        return executor.delete(configuration,mappedStatement,args);
+                    default:
+                        break;
+                }
+                return null;
             }
         });
         return (T) o;

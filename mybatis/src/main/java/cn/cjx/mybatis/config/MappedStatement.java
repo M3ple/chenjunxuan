@@ -12,6 +12,7 @@ import lombok.Data;
 public class MappedStatement {
     private String id;
     private String sql;
+    private String nodeName;
     private Class<?> resultType;
     private Class<?> paramterType;
 }

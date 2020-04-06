@@ -10,7 +10,7 @@ public class ParameterMappingTokenHandler implements TokenHandler {
 
 	private List<ParameterMapping> parameterMappings = new ArrayList<>();
 
-	// context是参数名称 #{id} #{username}
+	// context是参数名称 #{id} #{userName}
 
 	@Override
 	public String handleToken(String content) {

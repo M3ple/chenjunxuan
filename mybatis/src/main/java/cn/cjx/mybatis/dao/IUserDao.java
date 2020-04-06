@@ -15,4 +15,10 @@ public interface IUserDao {
     List<User> findAll();
 
     List<User> findByCondition(User user);
+
+    void insert(User user);
+
+    void delete(User user);
+
+    void updateById(User user);
 }

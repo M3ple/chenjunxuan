@@ -12,10 +12,7 @@ import cn.cjx.mybatis.utils.ParameterMappingTokenHandler;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,35 +23,8 @@ public class SimpleExecutor implements Executor {
 
     @Override                                                                                //user
     public <E> List<E> query(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
-        // 1. 注册驱动，获取连接
-        Connection connection = configuration.getDataSource().getConnection();
-
-        // 2. 获取sql语句 : select * from user where id = #{id} and username = #{username}
-        //转换sql语句： select * from user where id = ? and username = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
-        String sql = mappedStatement.getSql();
-        BoundSql boundSql = this.getBoundSql(sql);
-
-        // 3.获取预处理对象：preparedStatement
-        PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSqlText());
-
-        // 4. 设置参数
-        //获取到了参数的全路径
-        Class<?> paramtertypeClass = mappedStatement.getParamterType();
-
-        List<ParameterMapping> parameterMappingList = boundSql.getParameterMappingList();
-        for (int i = 0; i < parameterMappingList.size(); i++) {
-            ParameterMapping parameterMapping = parameterMappingList.get(i);
-            String content = parameterMapping.getContent();
-
-            //反射
-            Field declaredField = paramtertypeClass.getDeclaredField(content);
-            //暴力访问
-            declaredField.setAccessible(true);
-            Object o = declaredField.get(params[0]);
-
-            preparedStatement.setObject(i + 1, o);
-        }
-
+        // 前处理
+        PreparedStatement preparedStatement = preHandle(configuration, mappedStatement, params);
 
         // 5. 执行sql
         ResultSet resultSet = preparedStatement.executeQuery();
@@ -85,6 +55,64 @@ public class SimpleExecutor implements Executor {
             results.add((E) o);
         }
         return results;
+    }
+
+    private PreparedStatement preHandle(Configuration configuration, MappedStatement mappedStatement, Object[] params) throws SQLException, NoSuchFieldException, IllegalAccessException {
+        // 1. 注册驱动，获取连接
+        Connection connection = configuration.getDataSource().getConnection();
+
+        // 2. 获取sql语句 : select * from user where id = #{id} and userName = #{userName}
+        //转换sql语句： select * from user where id = ? and userName = ? ，转换的过程中，还需要对#{}里面的值进行解析存储
+        String sql = mappedStatement.getSql();
+        BoundSql boundSql = this.getBoundSql(sql);
+
+        // 3.获取预处理对象：preparedStatement
+        PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSqlText());
+
+        // 4. 设置参数
+        //获取到了参数的全路径
+        Class<?> paramtertypeClass = mappedStatement.getParamterType();
+
+        List<ParameterMapping> parameterMappingList = boundSql.getParameterMappingList();
+        if (parameterMappingList!=null && parameterMappingList.size()>0){
+            for (int i = 0; i < parameterMappingList.size(); i++) {
+                ParameterMapping parameterMapping = parameterMappingList.get(i);
+                String content = parameterMapping.getContent();
+
+                //反射
+                Field declaredField = paramtertypeClass.getDeclaredField(content);
+                //暴力访问
+                declaredField.setAccessible(true);
+                Object o = declaredField.get(params[0]);
+
+                preparedStatement.setObject(i + 1, o);
+            }
+        }
+        return preparedStatement;
+    }
+
+    @Override
+    public Integer insert(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
+        // 前处理
+        PreparedStatement preparedStatement = preHandle(configuration, mappedStatement, params);
+        preparedStatement.executeUpdate();
+        return preparedStatement.getUpdateCount();
+    }
+
+    @Override
+    public Integer update(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
+        // 前处理
+        PreparedStatement preparedStatement = preHandle(configuration, mappedStatement, params);
+        preparedStatement.executeUpdate();
+        return preparedStatement.getUpdateCount();
+    }
+
+    @Override
+    public Integer delete(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
+        // 前处理
+        PreparedStatement preparedStatement = preHandle(configuration, mappedStatement, params);
+        preparedStatement.executeUpdate();
+        return preparedStatement.getUpdateCount();
     }
 
     /**

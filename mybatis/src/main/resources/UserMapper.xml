@@ -10,11 +10,28 @@
     <!--
         User user = new User()
         user.setId(1);
-        user.setUsername("zhangsan")
+        user.setUserName("zhangsan")
     -->
     <select id="findByCondition" paramterType="cn.cjx.mybatis.entity.User" resultType="cn.cjx.mybatis.entity.User" >
-        select * from user where id = #{id} and username = #{username}
+        select * from user where id = #{id} and username = #{userName}
     </select>
 
+    <insert id="insert" paramterType="cn.cjx.mybatis.entity.User">
+        insert into user(
+            id,
+            userName
+        ) values(
+            #{id},
+            #{userName}
+        )
+    </insert>
+
+    <update id="updateById" paramterType="cn.cjx.mybatis.entity.User">
+        update user set username = #{userName} where id = #{id}
+    </update>
+
+    <delete id="delete" paramterType="cn.cjx.mybatis.entity.User">
+        delete from user where id = #{id}
+    </delete>
 
 </mapper>

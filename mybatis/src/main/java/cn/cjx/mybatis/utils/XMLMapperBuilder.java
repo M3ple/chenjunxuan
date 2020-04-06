@@ -28,17 +28,19 @@ public class XMLMapperBuilder {
         Document doc = sr.read(in);
         Element rootElement = doc.getRootElement();
         String namespace = rootElement.attributeValue("namespace");
-        List<Element> list = rootElement.selectNodes("select");
+        List<Element> list = rootElement.elements();
         for (Element element : list) {
             String id = element.attributeValue("id");
             String resultType = element.attributeValue("resultType");
             String paramterType = element.attributeValue("paramterType");
             String sqlText = element.getTextTrim();
+            String nodeName = element.getName();
             MappedStatement mappedStatement = new MappedStatement();
             mappedStatement.setId(id);
             mappedStatement.setResultType(resultType!=null?Class.forName(resultType):null);
             mappedStatement.setParamterType(paramterType!=null?Class.forName(paramterType):null);
             mappedStatement.setSql(sqlText);
+            mappedStatement.setNodeName(nodeName);
             String key = namespace+"."+id;
             configuration.getMappedStatementMap().put(key,mappedStatement);
         }

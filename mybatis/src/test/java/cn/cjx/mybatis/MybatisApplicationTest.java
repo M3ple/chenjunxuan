@@ -6,6 +6,7 @@ import cn.cjx.mybatis.entity.User;
 import cn.cjx.mybatis.factory.SqlSession;
 import cn.cjx.mybatis.factory.SqlSessionFactory;
 import cn.cjx.mybatis.utils.SqlSessionFactoryBuilder;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,21 +19,47 @@ import java.util.List;
 @RunWith(SpringRunner.class)
 public class MybatisApplicationTest {
 
-    @Test
-    public void esSave() throws Exception {
-//        String path = "";
-//        SqlSessionFactory sqlSessionFactory = SqlSessionFactoryBuilder.build(path);
+    IUserDao userDao = null;
+
+    @Before
+    public void init() throws Exception {
         InputStream in = Resources.getResourceAsSteam("sqlMapConfig.xml");
         SqlSessionFactory sqlSessionFactory = SqlSessionFactoryBuilder.build(in);
         SqlSession sqlSession = sqlSessionFactory.openSession();
-        IUserDao userDao = sqlSession.getMapper(IUserDao.class);
+        userDao = sqlSession.getMapper(IUserDao.class);
+    }
+
+    @Test
+    public void select(){
         User condition = new User();
         condition.setId(1);
-        condition.setUsername("王五");
+        condition.setUserName("王五");
         List<User> conditionList = userDao.findByCondition(condition);
         System.out.println(conditionList);
         List<User> all = userDao.findAll();
         System.out.println(all);
+    }
+
+    @Test
+    public void insert(){
+        User user = new User();
+        user.setUserName("cjx_test_insert");
+        userDao.insert(user);
+    }
+
+    @Test
+    public void update(){
+        User user = new User();
+        user.setId(1);
+        user.setUserName("cjx_test_update");
+        userDao.updateById(user);
+    }
+
+    @Test
+    public void delete(){
+        User user = new User();
+        user.setId(27);
+        userDao.delete(user);
     }
 
 }
