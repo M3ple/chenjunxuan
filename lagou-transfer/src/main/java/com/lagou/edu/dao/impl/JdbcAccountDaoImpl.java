@@ -13,7 +13,7 @@ import java.sql.ResultSet;
 /**
  * @author 应癫
  */
-@Repository
+@Repository("accountDao")
 public class JdbcAccountDaoImpl implements AccountDao {
 
     @Autowired

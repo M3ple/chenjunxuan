@@ -7,7 +7,5 @@ import java.lang.annotation.*;
 @Documented
 @Component
 public @interface Repository {
-
 	String value() default "";
-
 }

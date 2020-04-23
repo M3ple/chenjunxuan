@@ -1,8 +1,6 @@
 package com.lagou.edu.factory;
 
-import com.lagou.edu.annotation.Autowired;
-import com.lagou.edu.annotation.Component;
-import com.lagou.edu.annotation.Transactional;
+import com.lagou.edu.annotation.*;
 import com.lagou.edu.enums.ProxyTypeEnum;
 import com.lagou.edu.pojo.TransactionManagerStrategy;
 
@@ -49,10 +47,12 @@ public class AnnotationBeanFactory {
                     if (isOriginatedFromAnnotation && !clazz.isInterface() && !clazz.isAnnotation()){
                         Object o = clazz.newInstance();
                         map.put(beanDefinition.getClassSimpleName(), o);
+                        // 存一份别名
+                        if (beanDefinition.getAlias()!=null && beanDefinition.getAlias()!=""){
+                            map.put(beanDefinition.getAlias(), o);
+                        }
                     }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InstantiationException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -66,12 +66,17 @@ public class AnnotationBeanFactory {
             String beanName = entry.getKey();
             Object bean = entry.getValue();
             BeanDefinition beanDefinition = beanDefinitions.get(bean.getClass().getName());
-            if (beanDefinition.getProxyTypeEnum().equals(ProxyTypeEnum.CJLIB)) {
-                bean = getProxyFactory().getCglibProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
-            } else {
-                bean = getProxyFactory().getJdkProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
+            if (null!=beanDefinition){
+                if (ProxyTypeEnum.CJLIB.equals(beanDefinition.getProxyTypeEnum())) {
+                    bean = getProxyFactory().getCglibProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
+                } else {
+                    bean = getProxyFactory().getJdkProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
+                }
+                objects.put(beanName,bean);
+                if (beanDefinition.getAlias()!=null && beanDefinition.getAlias()!=""){
+                    objects.put(beanDefinition.getAlias(),bean);
+                }
             }
-            objects.put(beanName,bean);
         }
     }
 
@@ -87,7 +92,7 @@ public class AnnotationBeanFactory {
                     processAutoWiredBean(o);
                     field.setAccessible(true);
                     field.set(bean, o);
-                } catch (IllegalAccessException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -193,7 +198,7 @@ public class AnnotationBeanFactory {
                 String filePath = url.getFile();
                 resolveAllResourcesAsBeanDefinition(filePath,beanDefinitions);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -222,12 +227,39 @@ public class AnnotationBeanFactory {
                     beanDefinition.setAutoWiredFields(getAnnotationField(clazz, Autowired.class));
                     beanDefinition.setProxyTypeEnum(getProxyTypeEnum(clazz, Component.class));
                     beanDefinition.setTransactionManagerStrategy(getTransactionManagerStrategy(clazz));
+                    beanDefinition.setAlias(getAlias(clazz));
                     beanDefinitions.put(beanDefinition.getClassName(),beanDefinition);
                 }
-            } catch (ClassNotFoundException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * 获取别名
+     * @param clazz
+     * @return
+     */
+    private static String getAlias(Class<?> clazz) {
+        for (int i = 0; i < clazz.getAnnotations().length; i++) {
+            Annotation annotation = clazz.getAnnotations()[i];
+            Class<? extends Annotation> annotationType = annotation.annotationType();
+            if (!clazz.isInterface() && !clazz.isAnnotation() && (annotation.annotationType().equals(Component.class)
+                    || annotation.annotationType().isAnnotationPresent(Component.class))){
+                if (annotationType.equals(Component.class)){
+                    Component component = clazz.getAnnotation(Component.class);
+                    return component.value();
+                }else if (annotationType.equals(Service.class)){
+                    Service service = clazz.getAnnotation(Service.class);
+                    return service.value();
+                }else if (annotationType.equals(Repository.class)){
+                    Repository repository = clazz.getAnnotation(Repository.class);
+                    return repository.value();
+                }
+            }
+        }
+        return null;
     }
 
     private ProxyTypeEnum getProxyTypeEnum(Class<?> clazz, Class<Component> componentClass) {
@@ -302,14 +334,15 @@ public class AnnotationBeanFactory {
         return null;
     }
 
-    public static void main(String[] args) throws ClassNotFoundException {
+    public static void main(String[] args) throws Exception {
 //        Class<?> clazz = Class.forName("com.lagou.edu.annotation.Component");
 //        Class<?> clazz2 = Class.forName("com.lagou.edu.annotation.Service");
 //        System.out.println(clazz.isAnnotationPresent(Component.class));
 //        System.out.println(clazz2.isAnnotationPresent(Component.class));
 //        System.out.println(clazz.isAssignableFrom(clazz2));
 //        System.out.println(clazz2.isAssignableFrom(clazz));
-        new AnnotationBeanFactory();
+//        new AnnotationBeanFactory();
+        System.out.println(getAlias(Class.forName("com.lagou.edu.service.impl.TransferServiceImpl")));
     }
 
     public Object getBean(Class<?> clazz) {

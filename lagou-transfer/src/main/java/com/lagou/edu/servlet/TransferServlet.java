@@ -19,11 +19,15 @@ import java.io.IOException;
 public class TransferServlet extends HttpServlet {
 
     private TransferService transferService = null ;
+    AnnotationBeanFactory beanFactory;
 
     @Override
-    public void init() throws ServletException {
-        AnnotationBeanFactory beanFactory = new AnnotationBeanFactory();
-        transferService = (TransferService) beanFactory.getBean(TransferService.class);
+    public void init(){
+        if (beanFactory==null){
+            beanFactory = new AnnotationBeanFactory();
+            transferService = (TransferService) beanFactory.getBean(TransferService.class);
+//            transferService = (TransferService) beanFactory.getBean("transfer");
+        }
     }
 
     @Override
@@ -33,7 +37,6 @@ public class TransferServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
         // 设置请求体的字符编码
         req.setCharacterEncoding("UTF-8");
 

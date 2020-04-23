@@ -10,7 +10,7 @@ import com.lagou.edu.service.TransferService;
 /**
  * @author 应癫
  */
-@Service
+@Service("transfer")
 public class TransferServiceImpl implements TransferService {
 
     //private AccountDao accountDao = new JdbcAccountDaoImpl();
@@ -42,7 +42,7 @@ public class TransferServiceImpl implements TransferService {
         to.setMoney(to.getMoney()+money);
 
         accountDao.updateAccountByCardNo(to);
-        int c = 1/0;
+//        int c = 1/0;
         accountDao.updateAccountByCardNo(from);
 
         /*    // 提交事务
