@@ -51,7 +51,7 @@ public class ProxyFactory {
                     @Override
                     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                         Object result = null;
-                        if (methodList.contains(method.getName())){
+                        if (methodList!=null && methodList.contains(method.getName())){
                             try{
                                 // 开启事务(关闭事务的自动提交)
                                 transactionManager.beginTransaction();
@@ -90,7 +90,7 @@ public class ProxyFactory {
             @Override
             public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
                 Object result = null;
-                if (methodList.contains(method.getName())) {
+                if (methodList!=null && methodList.contains(method.getName())) {
                     try {
                         // 开启事务(关闭事务的自动提交)
                         transactionManager.beginTransaction();

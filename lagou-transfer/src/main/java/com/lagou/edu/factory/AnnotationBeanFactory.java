@@ -5,7 +5,6 @@ import com.lagou.edu.annotation.Component;
 import com.lagou.edu.annotation.Transactional;
 import com.lagou.edu.enums.ProxyTypeEnum;
 import com.lagou.edu.pojo.TransactionManagerStrategy;
-import com.lagou.edu.service.TransferService;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,40 +62,43 @@ public class AnnotationBeanFactory {
     }
 
     private void processTransactionalBean() {
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
+        for (Map.Entry<String, Object> entry : objects.entrySet()) {
             String beanName = entry.getKey();
             Object bean = entry.getValue();
             BeanDefinition beanDefinition = beanDefinitions.get(bean.getClass().getName());
-            Component annotation = bean.getClass().getAnnotation(Component.class);
-            if (annotation != null) {
-                if (annotation.proxyType().equals(ProxyTypeEnum.CJLIB)) {
-                    bean = getProxyFactory().getCglibProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
-                } else {
-                    bean = getProxyFactory().getJdkProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
-                }
+            if (beanDefinition.getProxyTypeEnum().equals(ProxyTypeEnum.CJLIB)) {
+                bean = getProxyFactory().getCglibProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
+            } else {
+                bean = getProxyFactory().getJdkProxy(bean, beanDefinition.getTransactionManagerStrategy().getMethodList());
             }
             objects.put(beanName,bean);
         }
     }
 
-    private void processAutoWiredBean(){
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            try {
-                String beanName = entry.getKey();
-                Object bean = entry.getValue();
-                BeanDefinition beanDefinition = beanDefinitions.get(bean.getClass().getName());
-                List<Field> autoWiredFields = beanDefinition.getAutoWiredFields();
-                for (int i = 0; i < autoWiredFields.size(); i++) {
+    private void processAutoWiredBean(Object bean){
+        BeanDefinition beanDefinition = beanDefinitions.get(bean.getClass().getName());
+        List<Field> autoWiredFields = beanDefinition.getAutoWiredFields();
+        if (autoWiredFields!=null && !autoWiredFields.isEmpty()){
+            for (int i = 0; i < autoWiredFields.size(); i++) {
+                try {
                     Field field = autoWiredFields.get(i);
                     Class<?> fieldType = field.getType();
                     Object o = getBeanByType(fieldType);
+                    processAutoWiredBean(o);
                     field.setAccessible(true);
                     field.set(bean, o);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
                 }
-                objects.put(beanName,bean);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
             }
+        }
+    }
+    private void processAutoWiredBean(){
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String beanName = entry.getKey();
+            Object bean = entry.getValue();
+            processAutoWiredBean(bean);
+            objects.put(beanName,bean);
         }
     }
 
@@ -218,6 +220,7 @@ public class AnnotationBeanFactory {
                     Class<?> clazz = Class.forName(beanDefinition.getClassName());
                     beanDefinition.setClazz(clazz);
                     beanDefinition.setAutoWiredFields(getAnnotationField(clazz, Autowired.class));
+                    beanDefinition.setProxyTypeEnum(getProxyTypeEnum(clazz, Component.class));
                     beanDefinition.setTransactionManagerStrategy(getTransactionManagerStrategy(clazz));
                     beanDefinitions.put(beanDefinition.getClassName(),beanDefinition);
                 }
@@ -225,6 +228,14 @@ public class AnnotationBeanFactory {
                 e.printStackTrace();
             }
         }
+    }
+
+    private ProxyTypeEnum getProxyTypeEnum(Class<?> clazz, Class<Component> componentClass) {
+        Component component = clazz.getAnnotation(componentClass);
+        if (component!=null){
+            return component.proxyType();
+        }
+        return ProxyTypeEnum.CJLIB;
     }
 
     /**

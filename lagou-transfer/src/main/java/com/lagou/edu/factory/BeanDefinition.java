@@ -16,6 +16,7 @@ public class BeanDefinition {
     private Class clazz;
     private List<Field> autoWiredFields;
     private TransactionManagerStrategy transactionManagerStrategy;
+    private com.lagou.edu.enums.ProxyTypeEnum ProxyTypeEnum;
 
     public String getClassName() {
         return className;
@@ -55,6 +56,14 @@ public class BeanDefinition {
 
     public void setTransactionManagerStrategy(TransactionManagerStrategy transactionManagerStrategy) {
         this.transactionManagerStrategy = transactionManagerStrategy;
+    }
+
+    public com.lagou.edu.enums.ProxyTypeEnum getProxyTypeEnum() {
+        return ProxyTypeEnum;
+    }
+
+    public void setProxyTypeEnum(com.lagou.edu.enums.ProxyTypeEnum proxyTypeEnum) {
+        ProxyTypeEnum = proxyTypeEnum;
     }
 
     @Override
