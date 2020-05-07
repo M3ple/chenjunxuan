@@ -6,7 +6,13 @@ import cn.cjx.utils.SpringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @功能描述:
@@ -27,6 +33,7 @@ public class HandlerMethodMapping implements InitializingBean {
      * but duplicated here to avoid a hard dependency on the spring-aop module.
      */
     private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
+    private MappingRegistry mappingRegistry = new MappingRegistry();
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -55,7 +62,46 @@ public class HandlerMethodMapping implements InitializingBean {
     }
 
     private void doInitHandlerMethodMapping(Class<?> clazz) {
+        ApplicationContext context = SpringUtils.getContext();
+        CjxRequestMapping typeRequestMapping = AnnotationUtils.findAnnotation(clazz, CjxRequestMapping.class);
+        String[] headPath = null;
+        // 处理类上的requestMapping
+        if (null!=typeRequestMapping){
+            headPath = getRequestMappingPath(typeRequestMapping);
+        }
+        // 处理method上的requestMapping
+        for (int i = 0; i < clazz.getDeclaredMethods().length; i++) {
+            Method method = clazz.getDeclaredMethods()[i];
+            CjxRequestMapping methodRequestMapping = AnnotationUtils.findAnnotation(method, CjxRequestMapping.class);
+            String[] methodPath = getRequestMappingPath(methodRequestMapping);
+            for (int j = 0; j < methodPath.length; j++) {
+                String methodUri = methodPath[j];
+                if (headPath!=null){
+                    for (int k = 0; k < headPath.length; k++) {
+                        String headUri = headPath[k];
+                        mappingRegistry.regist(headUri+methodUri,clazz,method,context);
+                    }
+                }else {
+                    mappingRegistry.regist(methodUri,clazz,method,context);
+                }
+            }
+        }
+    }
 
+    private String[] getRequestMappingPath(CjxRequestMapping typeRequestMapping) {
+        String[] uri = null;
+        String[] values = typeRequestMapping.value();
+        if (null==values){
+            values = typeRequestMapping.path();
+        }
+        if (null!=values && values.length>0){
+            uri = new String[values.length];
+            for (int i = 0; i < values.length; i++) {
+                String value = values[i];
+                uri[i] = value;
+            }
+        }
+        return uri;
     }
 
     /**
@@ -68,6 +114,9 @@ public class HandlerMethodMapping implements InitializingBean {
                 AnnotatedElementUtils.hasAnnotation(beanType, CjxRequestMapping.class));
     }
 
+    public CjxHandlerMethod getHandlerMethod(String uri) {
+        return mappingRegistry.getHandlerMethod(uri);
+    }
     /**
      * 获取所有工厂中的beanNames
      * @return String[]
@@ -75,5 +124,30 @@ public class HandlerMethodMapping implements InitializingBean {
     private String[] getCandidateBeanNames() {
         ApplicationContext context = SpringUtils.getContext();
         return context.getBeanNamesForType(Object.class);
+    }
+
+    private class MappingRegistry {
+        Map<String, CjxHandlerMethod> lookUps;
+        public MappingRegistry() {
+            lookUps = new HashMap<>();
+        }
+
+        public void regist(String uri, Class<?> clazz,Method method, ApplicationContext context) {
+            if (lookUps==null){
+                lookUps = new HashMap<>();
+            }
+            Assert.notNull(context,"ApplicationContext is can not be null!");
+            CjxHandlerMethod handlerMethod = new CjxHandlerMethod();
+            handlerMethod.setClassName(clazz.getName());
+            handlerMethod.setInstance(context.getBean(clazz));
+            handlerMethod.setClazz(clazz);
+            handlerMethod.setMethod(method);
+            lookUps.put(uri, handlerMethod);
+        }
+
+        public CjxHandlerMethod getHandlerMethod(String uri) {
+            Assert.notNull(lookUps,String.format("no mapped handlerMothod found in %S",uri));
+            return lookUps.get(uri);
+        }
     }
 }

@@ -24,12 +24,12 @@ public class CjxDispatcherServlet extends HttpServlet implements ApplicationCont
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.doGet(req, resp);
+        // TODO: 2020/5/8 0008
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        super.doPost(req, resp);
+        // TODO: 2020/5/8 0008
     }
 
     @Override

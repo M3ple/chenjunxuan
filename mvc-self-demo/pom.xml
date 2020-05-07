@@ -24,6 +24,18 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>5.1.9.RELEASE</version>
+            <classifier>sources</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>5.1.9.RELEASE</version>
+            <classifier>sources</classifier>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>

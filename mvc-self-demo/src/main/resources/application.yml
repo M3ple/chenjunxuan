@@ -1,0 +1,16 @@
+spring:
+  devtools:
+    restart:
+      enabled: true  #设置开启热部署
+server:
+  port: 8080
+  servlet:
+    context-path: /mvc
+    session:
+      cookie:
+        path: /
+  tomcat:
+    uri-encoding: UTF-8
+    maxThreads: 1000
+    minSpareThreads: 100
+    acceptCount: 500
