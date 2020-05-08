@@ -17,6 +17,15 @@ public class CjxHandlerMethod {
     private Class clazz;
     private String className;
     private Object instance;
+    private String[] securitySheet;
+
+    public String[] getSecuritySheet() {
+        return securitySheet;
+    }
+
+    public void setSecuritySheet(String[] securitySheet) {
+        this.securitySheet = securitySheet;
+    }
 
     public Method getMethod() {
         return method;
@@ -83,4 +92,25 @@ public class CjxHandlerMethod {
         System.out.println(CjxHandlerMethod.class.getMethods()[0].getParameterTypes()[0].getSimpleName());
         System.out.println(CjxHandlerMethod.class.getMethods()[0].getParameters()[0].getName());
     }
+
+    public boolean checkSecurity(HttpServletRequest request) {
+        String username = request.getParameter("username");
+        boolean hasAccess = false;
+        if (username==null){
+            username = (String) request.getAttribute("username");
+        }
+        if (securitySheet !=null && securitySheet.length>0){
+            if (username!=null){
+                for (String access : securitySheet) {
+                    if (hasAccess = access.equals(username)){
+                        break;
+                    }
+                }
+            }
+        }else {
+            hasAccess = true;
+        }
+        return hasAccess;
+    }
+
 }

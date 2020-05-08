@@ -2,6 +2,7 @@ package cn.cjx.component;
 
 import cn.cjx.annotation.CjxController;
 import cn.cjx.annotation.CjxRequestMapping;
+import cn.cjx.annotation.Security;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -12,7 +13,9 @@ import org.springframework.util.Assert;
 
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,22 +72,53 @@ public class HandlerMethodMapping implements ApplicationContextAware {
         if (null!=typeRequestMapping){
             headPath = getRequestMappingPath(typeRequestMapping);
         }
+        Security typeSecurity = AnnotationUtils.findAnnotation(clazz, Security.class);
+        String[] typeSecurityPath = null;
+        if (typeSecurity!=null){
+            typeSecurityPath = typeSecurity.value();
+        }
         // 处理method上的requestMapping
         for (int i = 0; i < clazz.getDeclaredMethods().length; i++) {
             Method method = clazz.getDeclaredMethods()[i];
             CjxRequestMapping methodRequestMapping = AnnotationUtils.findAnnotation(method, CjxRequestMapping.class);
+            Security methodSecurity = AnnotationUtils.findAnnotation(method, Security.class);
             String[] methodPath = getRequestMappingPath(methodRequestMapping);
+            String[] methodSecurityPath = null;
+            if (methodSecurity!=null){
+                methodSecurityPath = methodSecurity.value();
+            }
             for (int j = 0; j < methodPath.length; j++) {
                 String methodUri = trimHeadAndTailChar(methodPath[j],'/');
                 if (headPath!=null){
                     for (int k = 0; k < headPath.length; k++) {
                         String headUri = trimHeadAndTailChar(headPath[k],'/');
-                        mappingRegistry.regist("/"+headUri+"/"+methodUri,clazz,method,context);
+                        mappingRegistry.regist("/"+headUri+"/"+methodUri,clazz,method, getSecurityPath(typeSecurityPath,methodSecurityPath),context);
                     }
                 }else {
-                    mappingRegistry.regist("/"+methodUri,clazz,method,context);
+                    mappingRegistry.regist("/"+methodUri,clazz,method,getSecurityPath(typeSecurityPath,methodSecurityPath),context);
                 }
             }
+        }
+    }
+
+    private String[] getSecurityPath(String[] typeSecurityPath, String[] methodSecurityPath) {
+        if (typeSecurityPath!=null && typeSecurityPath.length>0){
+            if (methodSecurityPath!=null && methodSecurityPath.length>0){
+                List<String> result = new ArrayList<>(Math.max(typeSecurityPath.length,methodSecurityPath.length));
+                for (int i = 0; i < typeSecurityPath.length; i++) {
+                    String typeSecurity = typeSecurityPath[i];
+                    for (int j = 0; j < methodSecurityPath.length; j++) {
+                        if (typeSecurity.equals(methodSecurityPath[j])){
+                            result.add(typeSecurity);
+                        }
+                    }
+                }
+                return result.toArray(new String[result.size()]);
+            }else {
+                return typeSecurityPath;
+            }
+        }else {
+            return methodSecurityPath;
         }
     }
 
@@ -158,7 +192,7 @@ public class HandlerMethodMapping implements ApplicationContextAware {
             lookUps = new HashMap<>();
         }
 
-        public void regist(String uri, Class<?> clazz,Method method, ApplicationContext context) {
+        public void regist(String uri, Class<?> clazz,Method method, String[] securitySheet,ApplicationContext context) {
             if (lookUps==null){
                 lookUps = new HashMap<>();
             }
@@ -168,6 +202,7 @@ public class HandlerMethodMapping implements ApplicationContextAware {
             handlerMethod.setInstance(context.getBean(clazz));
             handlerMethod.setClazz(clazz);
             handlerMethod.setMethod(method);
+            handlerMethod.setSecuritySheet(securitySheet);
             lookUps.put(uri, handlerMethod);
         }
 

@@ -14,12 +14,11 @@ import cn.cjx.annotation.Security;
  * @since 2020-01-09
  */
 @CjxController
-@CjxRequestMapping("/test")
-@Security({"lucy","emma"})
-public class TestController {
+@CjxRequestMapping("/test2")
+@Security({"linda"})
+public class Test2Controller {
 
     @CjxRequestMapping("index")
-    @Security("emma")
     public String index(String username) {
         return username;
     }
