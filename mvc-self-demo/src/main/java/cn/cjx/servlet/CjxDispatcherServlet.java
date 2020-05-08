@@ -1,8 +1,8 @@
 package cn.cjx.servlet;
 
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
+import cn.cjx.component.CjxHandlerMethod;
+import cn.cjx.component.HandlerMethodMapping;
+import cn.cjx.utils.SpringUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -18,34 +18,34 @@ import java.io.IOException;
  * @创建人:陈俊旋
  */
 @WebServlet(urlPatterns = "/*")
-public class CjxDispatcherServlet extends HttpServlet implements ApplicationContextAware {
+public class CjxDispatcherServlet extends HttpServlet{
 
-    private ApplicationContext applicationContext;
+    private HandlerMethodMapping handlerMethodMapping;
+
+    @Override
+    public void init() throws ServletException {
+        String simpleName = HandlerMethodMapping.class.getSimpleName();
+        char[] chars = simpleName.toCharArray();
+        if('A'<= chars[0] && chars[0]<='Z'){
+            chars[0] = (char) (chars[0]+32);
+            simpleName = new String(chars);
+        }
+        handlerMethodMapping = SpringUtils.getBean(simpleName);
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        // TODO: 2020/5/8 0008
+        doPost(req,resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        // TODO: 2020/5/8 0008
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext context) throws BeansException {
-        this.applicationContext = context;
-//        initMultipartResolver(context);
-//        initLocaleResolver(context);
-//        initThemeResolver(context);
-//        initHandlerMappings(context);
-//        initHandlerAdapters(context);
-//        initHandlerExceptionResolvers(context);
-//        initRequestToViewNameTranslator(context);
-//        initViewResolvers(context);
-//        initFlashMapManager(context);
-    }
-
-    private void initHandlerMappings(ApplicationContext context) {
+        String contextPath = getServletContext().getContextPath();
+        CjxHandlerMethod handlerMethod = handlerMethodMapping.getHandlerMethod(req,contextPath);
+        if(handlerMethod == null) {
+            resp.getWriter().write("404 not found");
+            return;
+        }
+        handlerMethod.handle(req,resp);
     }
 }

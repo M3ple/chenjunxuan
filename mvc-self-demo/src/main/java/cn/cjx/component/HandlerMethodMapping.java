@@ -2,14 +2,15 @@ package cn.cjx.component;
 
 import cn.cjx.annotation.CjxController;
 import cn.cjx.annotation.CjxRequestMapping;
-import cn.cjx.utils.SpringUtils;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.Map;
  * @创建人:陈俊旋
  */
 @Component
-public class HandlerMethodMapping implements InitializingBean {
+public class HandlerMethodMapping implements ApplicationContextAware {
     /**
      * Bean name prefix for target beans behind scoped proxies. Used to exclude those
      * targets from handler method detection, in favor of the corresponding proxies.
@@ -34,11 +35,12 @@ public class HandlerMethodMapping implements InitializingBean {
      */
     private static final String SCOPED_TARGET_NAME_PREFIX = "scopedTarget.";
     private MappingRegistry mappingRegistry = new MappingRegistry();
+    private ApplicationContext context;
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        initHandlerMethods();
-    }
+//    @Override
+//    public void afterPropertiesSet() throws Exception {
+//        initHandlerMethods();
+//    }
 
     private void initHandlerMethods() {
         for (String beanName : getCandidateBeanNames()) {
@@ -54,7 +56,6 @@ public class HandlerMethodMapping implements InitializingBean {
      * @param beanName
      */
     private void processCandidateBean(String beanName) {
-        ApplicationContext context = SpringUtils.getContext();
         Class<?> clazz = context.getType(beanName);
         if (clazz!=null && isHandler(clazz)){
             doInitHandlerMethodMapping(clazz);
@@ -62,7 +63,6 @@ public class HandlerMethodMapping implements InitializingBean {
     }
 
     private void doInitHandlerMethodMapping(Class<?> clazz) {
-        ApplicationContext context = SpringUtils.getContext();
         CjxRequestMapping typeRequestMapping = AnnotationUtils.findAnnotation(clazz, CjxRequestMapping.class);
         String[] headPath = null;
         // 处理类上的requestMapping
@@ -75,17 +75,36 @@ public class HandlerMethodMapping implements InitializingBean {
             CjxRequestMapping methodRequestMapping = AnnotationUtils.findAnnotation(method, CjxRequestMapping.class);
             String[] methodPath = getRequestMappingPath(methodRequestMapping);
             for (int j = 0; j < methodPath.length; j++) {
-                String methodUri = methodPath[j];
+                String methodUri = trimHeadAndTailChar(methodPath[j],'/');
                 if (headPath!=null){
                     for (int k = 0; k < headPath.length; k++) {
-                        String headUri = headPath[k];
-                        mappingRegistry.regist(headUri+methodUri,clazz,method,context);
+                        String headUri = trimHeadAndTailChar(headPath[k],'/');
+                        mappingRegistry.regist("/"+headUri+"/"+methodUri,clazz,method,context);
                     }
                 }else {
-                    mappingRegistry.regist(methodUri,clazz,method,context);
+                    mappingRegistry.regist("/"+methodUri,clazz,method,context);
                 }
             }
         }
+    }
+
+    /**
+     * 除去首位字符
+     * @param str
+     * @param c
+     * @return
+     */
+    private String trimHeadAndTailChar(String str, char c) {
+        int start = 0;
+        int end = str.length();
+        char[] chars = str.toCharArray();
+        if (chars[0] == c){
+            start = 1;
+        }
+        if (chars[chars.length-1] == c){
+            end = end-1;
+        }
+        return str.substring(start,end);
     }
 
     private String[] getRequestMappingPath(CjxRequestMapping typeRequestMapping) {
@@ -114,16 +133,23 @@ public class HandlerMethodMapping implements InitializingBean {
                 AnnotatedElementUtils.hasAnnotation(beanType, CjxRequestMapping.class));
     }
 
-    public CjxHandlerMethod getHandlerMethod(String uri) {
-        return mappingRegistry.getHandlerMethod(uri);
+    public CjxHandlerMethod getHandlerMethod(HttpServletRequest req, String contextPath) {
+        String requestURI = req.getRequestURI();
+        requestURI = requestURI.replaceFirst(contextPath,"");
+        return mappingRegistry.getHandlerMethod(requestURI);
     }
     /**
      * 获取所有工厂中的beanNames
      * @return String[]
      */
     private String[] getCandidateBeanNames() {
-        ApplicationContext context = SpringUtils.getContext();
         return context.getBeanNamesForType(Object.class);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.context = applicationContext;
+        initHandlerMethods();
     }
 
     private class MappingRegistry {
