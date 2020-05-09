@@ -1,6 +1,7 @@
 package cn.cjx.config;
 
 import cn.cjx.interceptor.DemoInterceptor;
+import cn.cjx.interceptor.DemoInterceptor2;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -21,8 +22,8 @@ public class MyMvcConfig implements WebMvcConfigurer {
 //                registry.addInterceptor(new LoginHandlerInterceptor()).addPathPatterns("/**")
 //                .excludePathPatterns("/index.html","/","/user/login","/static/**","/webjars/**");
                 // /**  表示拦截所有路径下的所有请求
-                registry.addInterceptor(new DemoInterceptor())
-                        .addPathPatterns("/**");
+                registry.addInterceptor(new DemoInterceptor()).addPathPatterns("/**");
+                registry.addInterceptor(new DemoInterceptor2()).addPathPatterns("/**");
             }
         };
     }
